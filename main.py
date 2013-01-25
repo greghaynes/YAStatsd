@@ -73,7 +73,6 @@ class StatsdServer(DatagramProtocol):
             for pct_threshold in config.percentThresholds:
                 pct_ndx = int(float(pct_threshold) /
                     (len(timer_vals) * 100))
-                print timer_vals
                 pct_vals = heapq.nlargest(pct_ndx+1, timer_vals)
                 pct_sum = sum(pct_vals)
                 mean = pct_sum / float(len(pct_vals))
@@ -94,10 +93,20 @@ class StatsdServer(DatagramProtocol):
                     flush_time),
                 '%s.%s.sum %d %d\n' % (timer_prefix, timer_name, timer_sum,
                     flush_time)))
-        print msgs, 'Took %f seconds to flush' % (time() - flush_time)
+        self.timers = defaultdict(list)
+        self.timers_sum = Counter()
 
     def flushCounters(self):
-        pass
+        flush_time = int(time())
+        msgs = deque()
+        counter_prefix = config.counterPrefix
+        for counter_name, value in self.counters.items():
+            msgs.append('%s.%s %d %d\n' (counter_prefix, counter_name,
+                value, flush_time))
+            if not self.deleteCounters:
+                self.counters[counter_name] = 0
+        if config.deleteCounters:
+            self.counters = Counter()
 
 
 def main():
