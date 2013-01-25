@@ -1,12 +1,37 @@
+from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.task import LoopingCall
+from twisted.internet import reactor
 
 from collections import deque
 import heapq
 
-class GraphiteBackend(object):
+
+class GraphteConnection(Protocol):
+
+    def __init__(self, factory):
+        self.factory = factory
+
+    def connectionMade(self):
+        self.factory.connections.append(self)
+
+    def connectionLost(self, reason):
+        self.factory.connections.remove(self)
+
+
+class GraphiteBackend(ClientFactory):
 
     def __init__(self, config):
         self.config = config
+        self.connections = []
+
+    def buildProtocol(self, addr):
+        return GraphteConnection(self)
+
+    def clientConnectionLost(self, connector, reason):
+        print 'Connection to graphite lost, Reason:', reason
+
+    def clientConnectionFailed(self, connector, reason):
+        print 'Connection to graphite failed, Reason:', reason
 
     def handleFlush(self, stats, time):
         self.flushTimers(stats, time)
@@ -49,14 +74,20 @@ class GraphiteBackend(object):
                     % template_args,
                 '%(prefix)s.%(timer_name)s.sum %(sum)d %(time)d\n'
                     % template_args))
+        for msg in msgs:
+            for conn in self.connections:
+                conn.transport.write(msg)
 
     def flushCounters(self, stats, time):
         msgs = deque()
         for name, value in stats.counters.items():
-            msgs.append('%(prefix)s.%(name)s %(value)f %(time)d' %
+            msgs.append('%(prefix)s.%(name)s %(value)f %(time)d\n' %
                 { 
                     'prefix': self.config.counterPrefix,
                     'name': name,
                     'value': value,
                     'time': time
                 });
+        for msg in msgs:
+            for conn in self.connections:
+                conn.transport.write(msg)

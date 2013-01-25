@@ -81,7 +81,9 @@ def main():
     ss = StatsdServer()
 
     from backends.graphite import GraphiteBackend
-    ss.addBackend(GraphiteBackend(config))
+    gb = GraphiteBackend(config)
+    ss.addBackend(gb)
+    reactor.connectTCP(config.graphiteHost, config.graphitePort, gb)
 
     reactor.listenUDP(config.port, ss)
     reactor.run()
