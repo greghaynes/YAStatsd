@@ -1,25 +1,32 @@
 from twisted.internet.protocol import DatagramProtocol
+from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, deque
 import heapq
+from time import time
 
 import config
 
-class StatsdListener(DatagramProtocol):
+class StatsdServer(DatagramProtocol):
 
-    def __init__(self):
+    def __init__(self, backends):
+        self.backends = backends
         self.type_handlers = {
             'ms': self.handleTimer,
             'c': self.handleCounter,
         }
         self.timers = defaultdict(list)
-        self.timers_sum = 0
+        self.timers_sum = Counter()
         self.timer_type_multipliers = {
             'ms': 1,
             's': 1000
         }
         self.counters = Counter()
+
+        # Setup flush routine
+        self.flush_call = LoopingCall(self.handleFlush)
+        self.flush_call.start(config.flushInterval)
 
     def datagramReceived(self, data, (host, port)):
         metrics = data.split('\n')
@@ -48,15 +55,55 @@ class StatsdListener(DatagramProtocol):
         
         event_val *= self.timer_type_multipliers[event_type]
 
-        heappush(self.timers[event_name], event_val)
-        self.timers_sum += event_val
+        heapq.heappush(self.timers[event_name], event_val)
+        self.timers_sum[event_name] += event_val
 
     def handleCounter(self, event_name, event_type, event_val, sampling):
         self.counters[event_name] += event_val * sampling
 
+    def handleFlush(self):
+        self.flushTimers()
+        self.flushCounters()
+
+    def flushTimers(self):
+        flush_time = int(time())
+        msgs = deque()
+        timer_prefix = config.timerPrefix
+        for timer_name, timer_vals in self.timers.items():
+            for pct_threshold in config.percentThresholds:
+                pct_ndx = int(float(pct_threshold) /
+                    (len(timer_vals) * 100))
+                print timer_vals
+                pct_vals = heapq.nlargest(pct_ndx+1, timer_vals)
+                pct_sum = sum(pct_vals)
+                mean = pct_sum / float(len(pct_vals))
+                msgs.extend((
+                    '%s.%s.mean_%d %d %d\n' % (timer_prefix, timer_name,
+                        pct_threshold, mean, flush_time),
+                    '%s.%s.upper_%d %d %d\n' % (timer_prefix, timer_name,
+                        pct_threshold, pct_vals[-1], flush_time),
+                    '%s.%s.sum_%d %d %d\n' % (timer_prefix, timer_name,
+                        pct_threshold, pct_sum, flush_time)))
+            timer_sum = self.timers_sum[timer_name]
+            mean = timer_sum / float(len(timer_vals))
+            upper = heapq.nlargest(1, timer_vals)[0]
+            msgs.extend((
+                '%s.%s.mean %d %d\n' % (timer_prefix, timer_name, mean,
+                    flush_time),
+                '%s.%s.upper %d %d\n' % (timer_prefix, timer_name, upper,
+                    flush_time),
+                '%s.%s.sum %d %d\n' % (timer_prefix, timer_name, timer_sum,
+                    flush_time)))
+        print msgs, 'Took %f seconds to flush' % (time() - flush_time)
+
+    def flushCounters(self):
+        pass
+
 
 def main():
-    reactor.listenUDP(config.port, StatsdListener())
+    from backends.graphite import GraphiteBackend
+    backends = (GraphiteBackend(), )
+    reactor.listenUDP(config.port, StatsdServer(backends))
     reactor.run()
 
 if __name__ == '__main__':

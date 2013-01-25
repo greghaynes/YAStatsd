@@ -1,0 +1,2 @@
+class GraphiteBackend(object):
+    pass
