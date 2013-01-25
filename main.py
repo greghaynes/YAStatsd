@@ -61,7 +61,6 @@ class StatsdServer(DatagramProtocol):
 
         heapq.heappush(self.timers[event_name], event_val)
         self.timers_sum[event_name] += event_val
-        print self.timers
 
     def handleCounter(self, event_name, event_type, event_val, sampling):
         self.counters[event_name] += event_val * sampling
