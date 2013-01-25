@@ -10,8 +10,8 @@ import config
 
 class StatsdServer(DatagramProtocol):
 
-    def __init__(self, backends):
-        self.backends = backends
+    def __init__(self):
+        self.backends = []
         self.type_handlers = {
             'ms': self.handleTimer,
             'c': self.handleCounter,
@@ -28,10 +28,14 @@ class StatsdServer(DatagramProtocol):
         self.flush_call = LoopingCall(self.handleFlush)
         self.flush_call.start(config.flushInterval)
 
+    def addBackend(self, backend):
+        self.backends.append(backend)
+
     def datagramReceived(self, data, (host, port)):
         metrics = data.split('\n')
         for metric in metrics:
-            self.metricReceived(metric, (host, port))
+            if metric != '':
+                self.metricReceived(metric, (host, port))
 
     def metricReceived(self, metric, (host, port)):
         met_split = metric.split('|')
@@ -42,7 +46,7 @@ class StatsdServer(DatagramProtocol):
             event, event_type, sampling = met_split
         else:
             raise ValueError('Ivalid number of "|"s, found %d'
-                % len(met_split))
+                % (len(met_split)+1))
         event_name, event_str_val = event.split(':')
         event_val = int(event_str_val)
         self.type_handlers[event_type](event_name, event_type,
@@ -57,62 +61,28 @@ class StatsdServer(DatagramProtocol):
 
         heapq.heappush(self.timers[event_name], event_val)
         self.timers_sum[event_name] += event_val
+        print self.timers
 
     def handleCounter(self, event_name, event_type, event_val, sampling):
         self.counters[event_name] += event_val * sampling
 
     def handleFlush(self):
-        self.flushTimers()
-        self.flushCounters()
+        timeval = int(time())
 
-    def flushTimers(self):
-        flush_time = int(time())
-        msgs = deque()
-        timer_prefix = config.timerPrefix
-        for timer_name, timer_vals in self.timers.items():
-            for pct_threshold in config.percentThresholds:
-                pct_ndx = int(float(pct_threshold) /
-                    (len(timer_vals) * 100))
-                pct_vals = heapq.nlargest(pct_ndx+1, timer_vals)
-                pct_sum = sum(pct_vals)
-                mean = pct_sum / float(len(pct_vals))
-                msgs.extend((
-                    '%s.%s.mean_%d %d %d\n' % (timer_prefix, timer_name,
-                        pct_threshold, mean, flush_time),
-                    '%s.%s.upper_%d %d %d\n' % (timer_prefix, timer_name,
-                        pct_threshold, pct_vals[-1], flush_time),
-                    '%s.%s.sum_%d %d %d\n' % (timer_prefix, timer_name,
-                        pct_threshold, pct_sum, flush_time)))
-            timer_sum = self.timers_sum[timer_name]
-            mean = timer_sum / float(len(timer_vals))
-            upper = heapq.nlargest(1, timer_vals)[0]
-            msgs.extend((
-                '%s.%s.mean %d %d\n' % (timer_prefix, timer_name, mean,
-                    flush_time),
-                '%s.%s.upper %d %d\n' % (timer_prefix, timer_name, upper,
-                    flush_time),
-                '%s.%s.sum %d %d\n' % (timer_prefix, timer_name, timer_sum,
-                    flush_time)))
+        for backend in self.backends:
+            backend.handleFlush(self, timeval)
+
         self.timers = defaultdict(list)
         self.timers_sum = Counter()
 
-    def flushCounters(self):
-        flush_time = int(time())
-        msgs = deque()
-        counter_prefix = config.counterPrefix
-        for counter_name, value in self.counters.items():
-            msgs.append('%s.%s %d %d\n' (counter_prefix, counter_name,
-                value, flush_time))
-            if not self.deleteCounters:
-                self.counters[counter_name] = 0
-        if config.deleteCounters:
-            self.counters = Counter()
-
 
 def main():
+    ss = StatsdServer()
+
     from backends.graphite import GraphiteBackend
-    backends = (GraphiteBackend(), )
-    reactor.listenUDP(config.port, StatsdServer(backends))
+    ss.addBackend(GraphiteBackend(config))
+
+    reactor.listenUDP(config.port, ss)
     reactor.run()
 
 if __name__ == '__main__':
