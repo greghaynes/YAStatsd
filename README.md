@@ -13,7 +13,7 @@ pip install -r requirements.txt
 </pre>
 
 ### Configure
-Edit config.py to your liking, and 
+Edit config.py to your liking
 
 ### Run
 <pre>
