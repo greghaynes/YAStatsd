@@ -5,7 +5,7 @@ A wireline compatible statsd server written in python.
 
 ## Using
 
-The reccomended method of usage is inside a virtualenv.
+The recommended method of usage is inside a virtualenv.
 
 ### Install dependencies
 <pre>
