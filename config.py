@@ -8,3 +8,4 @@ deleteCounters = False
 
 graphitePort = 2003
 graphiteHost = 'localhost'
+graphiteConnRetry = 5 # Seconds to wait before re-establishing connection

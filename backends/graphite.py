@@ -29,9 +29,13 @@ class GraphiteBackend(ClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         print 'Connection to graphite lost, Reason:', reason
+        print 'Retrying in %d seconds' % self.config.graphiteConnRetry
+        reactor.callLater(self.config.graphiteConnRetry, connector.connect)
 
     def clientConnectionFailed(self, connector, reason):
         print 'Connection to graphite failed, Reason:', reason
+        print 'Retrying in %d seconds' % self.config.graphiteConnRetry
+        reactor.callLater(self.config.graphiteConnRetry, connector.connect)
 
     def handleFlush(self, stats, time):
         self.flushTimers(stats, time)
