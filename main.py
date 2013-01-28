@@ -14,15 +14,10 @@ class StatsdServer(DatagramProtocol):
         self.backends = []
         self.type_handlers = {
             'ms': self.handleTimer,
-            's': self.handleTimer,
             'c': self.handleCounter,
         }
         self.timers = defaultdict(list)
         self.timers_sum = Counter()
-        self.timer_type_multipliers = {
-            'ms': 1,
-            's': 1000
-        }
         self.counters = Counter()
 
         # Setup flush routine
@@ -59,8 +54,6 @@ class StatsdServer(DatagramProtocol):
         if sampling != 1:
             raise ValueError('Sampling specified for a timer type')
         
-        event_val *= self.timer_type_multipliers[event_type]
-
         heapq.heappush(self.timers[event_name], event_val)
         self.timers_sum[event_name] += event_val
 
