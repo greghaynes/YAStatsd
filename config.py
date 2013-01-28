@@ -3,7 +3,8 @@ percentThresholds = (90, 75)
 flushInterval = 10.0 # Seconds to flush stats
 timerPrefix = 'stats.timers'
 counterPrefix = 'stats'
+guagePrefix = 'stats'
 deleteCounters = False
 
 graphitePort = 2003
-graphiteHost = 'graphite.example.com'
+graphiteHost = 'localhost'

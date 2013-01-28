@@ -15,10 +15,13 @@ class StatsdServer(DatagramProtocol):
         self.type_handlers = {
             'ms': self.handleTimer,
             'c': self.handleCounter,
+            'g': self.handleGuage,
         }
         self.timers = defaultdict(list)
         self.timers_sum = Counter()
         self.counters = Counter()
+        self.guages_sum = Counter()
+        self.guages_count = Counter()
 
         # Setup flush routine
         self.flush_call = LoopingCall(self.handleFlush)
@@ -60,6 +63,10 @@ class StatsdServer(DatagramProtocol):
     def handleCounter(self, event_name, event_type, event_val, sampling):
         self.counters[event_name] += event_val * (1 / sampling)
 
+    def handleGuage(self, event_name, event_type, event_val, sampling):
+        self.guages_sum[event_name] += event_val
+        self.guages_count[event_name] += 1
+
     def handleFlush(self):
         timeval = int(time())
 
@@ -68,6 +75,8 @@ class StatsdServer(DatagramProtocol):
 
         self.timers = defaultdict(list)
         self.timers_sum = Counter()
+        self.guages_sum = Counter()
+        self.guages_count = Counter()
 
 
 def main():
