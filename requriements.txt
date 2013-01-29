@@ -1,1 +1,1 @@
-Twisted==12.3.0
+Twisted>=11.0.0
