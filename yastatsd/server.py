@@ -77,6 +77,7 @@ class StatsdServer(DatagramProtocol):
         self.timers_sum = Counter()
         self.gauges_sum = Counter()
         self.gauges_count = Counter()
+        self.counters = Counter()
 
 
 def run_server():
