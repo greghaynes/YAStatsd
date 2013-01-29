@@ -40,7 +40,7 @@ class GraphiteBackend(ClientFactory):
     def handleFlush(self, stats, time):
         self.flushTimers(stats, time)
         self.flushCounters(stats, time)
-        self.flushGuages(stats, time)
+        self.flushGauges(stats, time)
 
     def flushTimers(self, stats, time):
         msgs = deque()
@@ -97,13 +97,13 @@ class GraphiteBackend(ClientFactory):
             for conn in self.connections:
                 conn.transport.write(msg)
 
-    def flushGuages(self, stats, time):
+    def flushGauges(self, stats, time):
         msgs = deque()
-        for name, value in stats.guages_sum.items():
-            avg = value / float(stats.guages_count[name])
+        for name, value in stats.gauges_sum.items():
+            avg = value / float(stats.gauges_count[name])
             msgs.append('%(prefix)s.%(name)s %(avg)f %(time)d\n' %
                 {
-                    'prefix': self.config.guagePrefix,
+                    'prefix': self.config.gaugePrefix,
                     'name': name,
                     'avg': avg,
                     'time': time
