@@ -8,6 +8,6 @@ setup(name='yastatsd',
     url='http://github.com/greghaynes/YAStatsd',
     license='MIT',
     install_requires=['Twisted>=11.0.0'],
-    packages=['yastatsd', 'yastatd.backends'],
+    packages=['yastatsd', 'yastatsd.backends'],
     scripts=['scripts/yastatsd']
     )
