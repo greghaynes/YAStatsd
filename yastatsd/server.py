@@ -79,7 +79,7 @@ class StatsdServer(DatagramProtocol):
         self.guages_count = Counter()
 
 
-def main():
+def run_server():
     ss = StatsdServer()
 
     from backends.graphite import GraphiteBackend
@@ -91,4 +91,4 @@ def main():
     reactor.run()
 
 if __name__ == '__main__':
-    main()
+    run_server()

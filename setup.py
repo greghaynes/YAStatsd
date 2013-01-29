@@ -8,4 +8,5 @@ setup(name='yastatsd',
     url='http://github.com/greghaynes/YAStatsd',
     license='MIT',
     packages=['yastatsd'],
+    scripts=['scripts/yastatsd']
     )
