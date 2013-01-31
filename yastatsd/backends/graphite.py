@@ -54,9 +54,8 @@ class GraphiteBackend(ClientFactory):
             template_args['timer_name'] = timer_name
             for pct_threshold in percent_thresholds:
                 template_args['pct'] = pct_threshold
-                pct_ndx = int(float(pct_threshold) /
-                    (len(timer_vals) * 100))
-                pct_vals = heapq.nsmallest(len(timer_vals) - pct_ndx+1, timer_vals)
+                pct_elem_cnt = int(math.ceil(len(timer_vals) * pct_threshold * .01))
+                pct_vals = heapq.nsmallest(pct_elem_cnt, timer_vals)
                 pct_sum = sum(pct_vals)
                 template_args['sum'] = pct_sum
                 template_args['mean'] = pct_sum / float(len(pct_vals))
