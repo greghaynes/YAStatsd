@@ -56,7 +56,7 @@ class GraphiteBackend(ClientFactory):
                 template_args['pct'] = pct_threshold
                 pct_ndx = int(float(pct_threshold) /
                     (len(timer_vals) * 100))
-                pct_vals = heapq.nlargest(pct_ndx+1, timer_vals)
+                pct_vals = heapq.nsmallest(len(timer_vals) - pct_ndx+1, timer_vals)
                 pct_sum = sum(pct_vals)
                 template_args['sum'] = pct_sum
                 template_args['mean'] = pct_sum / float(len(pct_vals))
