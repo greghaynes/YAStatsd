@@ -46,7 +46,7 @@ class StatsdServer(DatagramProtocol):
         else:
             raise ValueError('Ivalid number of "|"s, found %d'
                 % (len(met_split)+1))
-        sampling = float(sampling.replace('@', ''))
+        sampling = float(sampling[1:])
         event_name, event_str_val = event.split(':')
         event_val = int(event_str_val)
         self.type_handlers[event_type](event_name, event_type,
@@ -61,7 +61,10 @@ class StatsdServer(DatagramProtocol):
         self.timers_sum[event_name] += event_val
 
     def handleCounter(self, event_name, event_type, event_val, sampling):
-        self.counters[event_name] += event_val * (1 / sampling)
+        if sampling != 1:
+            self.counters[event_name] += event_val * (1 / sampling)
+        else:
+            self.counters[event_name] += event_val
 
     def handleGauge(self, event_name, event_type, event_val, sampling):
         self.gauges_sum[event_name] += event_val
