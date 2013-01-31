@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='yastatsd',
-    version='0.1.2',
+    version='0.1.3',
     description='Yet Another Statsd Server',
     author='Gregory Haynes',
     author_email='greg@greghaynes.net',
