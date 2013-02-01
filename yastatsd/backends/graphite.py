@@ -30,13 +30,15 @@ class GraphiteBackend(ClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         print 'Connection to graphite lost, Reason:', reason
-        print 'Retrying in %d seconds' % self.config.graphiteConnRetry
-        reactor.callLater(self.config.graphiteConnRetry, connector.connect)
+        conn_retry = int(self.config.get("Graphite", "ConnRetryInterval"))
+        print 'Retrying in %d seconds' % conn_retry
+        reactor.callLater(conn_retry, connector.connect)
 
     def clientConnectionFailed(self, connector, reason):
         print 'Connection to graphite failed, Reason:', reason
-        print 'Retrying in %d seconds' % self.config.graphiteConnRetry
-        reactor.callLater(self.config.graphiteConnRetry, connector.connect)
+        conn_retry = int(self.config.get("Graphite", "ConnRetryInterval"))
+        print 'Retrying in %d seconds' % conn_retry
+        reactor.callLater(conn_retry, connector.connect)
 
     def handleFlush(self, stats, time):
         self.flushTimers(stats, time)
@@ -45,10 +47,11 @@ class GraphiteBackend(ClientFactory):
 
     def flushTimers(self, stats, time):
         msgs = deque()
-        timer_prefix = self.config.timerPrefix
-        percent_thresholds = self.config.percentThresholds
+        timer_prefix = self.config.get("Graphite", "TimerPrefix")
+        percent_thresholds = [int(x) for x in
+            self.config.get("YAStatsd", "PercentThresholds").split(',')]
         template_args = {
-            'prefix': self.config.timerPrefix,
+            'prefix': timer_prefix,
             'time': time
         }
         for timer_name, timer_vals in stats.timers.items():
@@ -88,7 +91,7 @@ class GraphiteBackend(ClientFactory):
         for name, value in stats.counters.items():
             msgs.append('%(prefix)s.%(name)s %(value)f %(time)d\n' %
                 { 
-                    'prefix': self.config.counterPrefix,
+                    'prefix': self.config.get("Graphite", "CounterPrefix"),
                     'name': name,
                     'value': value,
                     'time': time
@@ -103,7 +106,7 @@ class GraphiteBackend(ClientFactory):
             avg = value / float(stats.gauges_count[name])
             msgs.append('%(prefix)s.%(name)s %(avg)f %(time)d\n' %
                 {
-                    'prefix': self.config.gaugePrefix,
+                    'prefix': self.config.get("Graphite", "GaugePrefix"),
                     'name': name,
                     'avg': avg,
                     'time': time

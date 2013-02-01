@@ -5,12 +5,13 @@ from twisted.internet import reactor
 from collections import Counter, defaultdict, deque
 import heapq
 from time import time
-
-import config
+import argparse
+import ConfigParser
 
 class StatsdServer(DatagramProtocol):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.backends = []
         self.type_handlers = {
             'ms': self.handleTimer,
@@ -25,7 +26,7 @@ class StatsdServer(DatagramProtocol):
 
         # Setup flush routine
         self.flush_call = LoopingCall(self.handleFlush)
-        self.flush_call.start(config.flushInterval)
+        self.flush_call.start(float(config.get("YAStatsd", "FlushInterval")))
 
     def addBackend(self, backend):
         self.backends.append(backend)
@@ -83,16 +84,30 @@ class StatsdServer(DatagramProtocol):
         self.counters = Counter()
 
 
-def run_server():
-    ss = StatsdServer()
+def run_server(config):
+    ss = StatsdServer(config)
 
     from backends.graphite import GraphiteBackend
     gb = GraphiteBackend(config)
     ss.addBackend(gb)
-    reactor.connectTCP(config.graphiteHost, config.graphitePort, gb)
+    reactor.connectTCP(
+        config.get("Graphite", "Host"),
+        int(config.get("Graphite", "Port")),
+        gb)
 
-    reactor.listenUDP(config.port, ss)
+    reactor.listenUDP(int(config.get("YAStatsd", "Port")), ss)
     reactor.run()
 
+
+def main():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("config", type=str,
+        help="Path to configuration file")
+    args = argparser.parse_args()
+
+    config = ConfigParser.SafeConfigParser()
+    config.read(args.config)
+    run_server(config)
+
 if __name__ == '__main__':
-    run_server()
+    main()
