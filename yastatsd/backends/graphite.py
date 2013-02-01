@@ -54,8 +54,12 @@ class GraphiteBackend(ClientFactory):
             'prefix': timer_prefix,
             'time': time
         }
+        pct_template = '%(prefix)s.%(timer_name)s.%(stat_type)s_%(pct)d %(val)f\n'
+        val_template = '%(prefix)s.%(timer_name)s.%(stat_type)s %(val)f %(time)d\n'
+        stat_types = ('sum', 'mean', 'upper')
         for timer_name, timer_vals in stats.timers.items():
             template_args['timer_name'] = timer_name
+
             for pct_threshold in percent_thresholds:
                 template_args['pct'] = pct_threshold
                 pct_elem_cnt = int(math.ceil(len(timer_vals) * pct_threshold * .01))
@@ -64,24 +68,23 @@ class GraphiteBackend(ClientFactory):
                 template_args['sum'] = pct_sum
                 template_args['mean'] = pct_sum / float(len(pct_vals))
                 template_args['upper'] = pct_vals[-1]
-                msgs.extend((
-                    '%(prefix)s.%(timer_name)s.mean_%(pct)d %(mean)d'\
-                        ' %(time)d\n' % template_args,
-                    '%(prefix)s.%(timer_name)s.upper_%(pct)d %(upper)d'\
-                        ' %(time)d\n' % template_args,
-                    '%(prefix)s.%(timer_name)s.sum_%(pct)d %(sum)d '\
-                        '%(time)d\n' % template_args))
+
+                for stat_type in stat_types:
+                    msgs.append(pct_template % dict(
+                            template_args,
+                            stat_type=stat_type,
+                            val=template_args[stat_type]))
+
             timer_sum = stats.timers_sum[timer_name]
             template_args['sum'] = timer_sum
             template_args['mean'] = timer_sum / float(len(timer_vals))
             template_args['upper'] = heapq.nlargest(1, timer_vals)[0]
-            msgs.extend((
-                '%(prefix)s.%(timer_name)s.mean %(mean)d %(time)d\n'
-                    % template_args,
-                '%(prefix)s.%(timer_name)s.upper %(upper)d %(time)d\n'
-                    % template_args,
-                '%(prefix)s.%(timer_name)s.sum %(sum)d %(time)d\n'
-                    % template_args))
+
+            for stat_type in stat_types:
+                msgs.append(val_template % dict(
+                    template_args,
+                    stat_type=stat_type,
+                    val=template_args[stat_type]))
 
         for conn in self.connections:
             for msg in msgs:
