@@ -82,9 +82,17 @@ class GraphiteBackend(ClientFactory):
                     % template_args,
                 '%(prefix)s.%(timer_name)s.sum %(sum)d %(time)d\n'
                     % template_args))
-        for msg in msgs:
-            for conn in self.connections:
+
+        for conn in self.connections:
+            for msg in msgs:
                 conn.transport.write(msg)
+            conn.transport.write('%(prefix)s.%(name)s %(val)d %(time)d\n' %
+                {
+                    'prefix': self.config.get("Graphite", "YAStatsdPrefix"),
+                    'name': 'timers.count',
+                    'val': len(stats.timers),
+                    'time': time
+                })
 
     def flushCounters(self, stats, time):
         msgs = deque()
@@ -96,9 +104,16 @@ class GraphiteBackend(ClientFactory):
                     'value': value,
                     'time': time
                 })
-        for msg in msgs:
-            for conn in self.connections:
+        for conn in self.connections:
+            for msg in msgs:
                 conn.transport.write(msg)
+            conn.transport.write('%(prefix)s.%(name)s %(val)d %(time)d\n' %
+                {
+                    'prefix': self.config.get("Graphite", "YAStatsdPrefix"),
+                    'name': 'counters.count',
+                    'val': len(stats.counters),
+                    'time': time
+                })
 
     def flushGauges(self, stats, time):
         msgs = deque()
@@ -111,6 +126,13 @@ class GraphiteBackend(ClientFactory):
                     'avg': avg,
                     'time': time
                 })
-        for msg in msgs:
-            for conn in self.connections:
+        for conn in self.connections:
+            for msg in msgs:
                 conn.transport.write(msg)
+            conn.transport.write('%(prefix)s.%(name)s %(val)d %(time)d\n' %
+                {
+                    'prefix': self.config.get("Graphite", "YAStatsdPrefix"),
+                    'name': 'gauges.count',
+                    'val': len(stats.gauges_count),
+                    'time': time
+                })
