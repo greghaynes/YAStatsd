@@ -104,7 +104,7 @@ class GraphiteBackend(ClientFactory):
                 { 
                     'prefix': self.config.get("Graphite", "CounterPrefix"),
                     'name': name,
-                    'value': value,
+                    'value': value / float(self.config.get("YAStatsd", "FlushInterval")),
                     'time': time
                 })
         for conn in self.connections:
