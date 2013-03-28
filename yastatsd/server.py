@@ -23,6 +23,7 @@ class StatsdServer(DatagramProtocol):
         self.counters = Counter()
         self.gauges_sum = Counter()
         self.gauges_count = Counter()
+        self.parseRepeaters()
 
         # Setup flush routine
         self.flush_call = LoopingCall(self.handleFlush)
@@ -32,6 +33,7 @@ class StatsdServer(DatagramProtocol):
         self.backends.append(backend)
 
     def datagramReceived(self, data, (host, port)):
+        self.repeat(data)
         metrics = data.split('\n')
         for metric in metrics:
             if metric != '':
@@ -82,6 +84,24 @@ class StatsdServer(DatagramProtocol):
         self.gauges_sum = Counter()
         self.gauges_count = Counter()
         self.counters = Counter()
+
+    def parseRepeaters(self):
+        self.repeaters = []
+        if (self.config.has_option("YAStatsd", "repeater") and
+                len(self.config.get("YAStatsd", "repeater")) > 0):
+            for rep in self.config.get("YAStatsd", "repeater").split(','):
+                if ":" in rep:
+                    addr = rep.split(":")
+                    self.repeaters.append(
+                        (addr[0].strip(), int(addr[1].strip())))
+                else:
+                    self.repeaters.append(
+                        (rep.strip(),
+                         int(self.config.get("YAStatsd", "Port"))))
+
+    def repeat(self, data):
+        for rep in self.repeaters:
+            self.transport.write(data, rep)
 
 
 def run_server(config):
