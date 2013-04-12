@@ -56,7 +56,7 @@ class GraphiteBackend(ClientFactory):
         }
         pct_template = '%(prefix)s.%(timer_name)s.%(stat_type)s_%(pct)d %(val)f\n'
         val_template = '%(prefix)s.%(timer_name)s.%(stat_type)s %(val)f %(time)d\n'
-        stat_types = ('sum', 'mean', 'upper')
+        stat_types = ('sum', 'mean', 'upper', 'count')
         for timer_name, timer_vals in stats.timers.items():
             template_args['timer_name'] = timer_name
 
@@ -68,6 +68,7 @@ class GraphiteBackend(ClientFactory):
                 template_args['sum'] = pct_sum
                 template_args['mean'] = pct_sum / float(len(pct_vals))
                 template_args['upper'] = pct_vals[-1]
+                template_args['count'] = len(pct_vals)
 
                 for stat_type in stat_types:
                     msgs.append(pct_template % dict(
@@ -79,6 +80,7 @@ class GraphiteBackend(ClientFactory):
             template_args['sum'] = timer_sum
             template_args['mean'] = timer_sum / float(len(timer_vals))
             template_args['upper'] = heapq.nlargest(1, timer_vals)[0]
+            template_args['count'] = len(timer_vals)
 
             for stat_type in stat_types:
                 msgs.append(val_template % dict(
