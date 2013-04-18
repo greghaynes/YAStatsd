@@ -47,7 +47,7 @@ class StatsdServer(DatagramProtocol):
         elif len(met_split) == 3:
             event, event_type, sampling = met_split
         else:
-            raise ValueError('Ivalid number of "|"s, found %d'
+            raise ValueError('Invalid number of "|"s, found %d'
                 % (len(met_split)+1))
         sampling = float(sampling[1:])
         event_name, event_str_val = event.split(':')
