@@ -7,7 +7,7 @@ import heapq
 import math
 
 
-class GraphteConnection(Protocol):
+class GraphiteConnection(Protocol):
 
     def __init__(self, factory):
         self.factory = factory
@@ -26,7 +26,7 @@ class GraphiteBackend(ClientFactory):
         self.connections = []
 
     def buildProtocol(self, addr):
-        return GraphteConnection(self)
+        return GraphiteConnection(self)
 
     def clientConnectionLost(self, connector, reason):
         print 'Connection to graphite lost, Reason:', reason
