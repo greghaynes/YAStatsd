@@ -51,7 +51,7 @@ class StatsdServer(DatagramProtocol):
                 % (len(met_split)+1))
         sampling = float(sampling[1:])
         event_name, event_str_val = event.split(':')
-        event_val = int(event_str_val)
+        event_val = float(event_str_val)
         self.type_handlers[event_type](event_name, event_type,
             event_val, sampling)
 
