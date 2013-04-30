@@ -2,7 +2,11 @@ from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
-from collections import Counter, defaultdict, deque
+try:
+    from collections import Counter
+except ImportError:
+    from counter import Counter
+from collections import defaultdict, deque
 import heapq
 from time import time
 import argparse
