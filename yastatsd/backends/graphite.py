@@ -54,7 +54,7 @@ class GraphiteBackend(ClientFactory):
             'prefix': timer_prefix,
             'time': time
         }
-        pct_template = '%(prefix)s.%(timer_name)s.%(stat_type)s_%(pct)d %(val)f\n'
+        pct_template = '%(prefix)s.%(timer_name)s.%(stat_type)s_%(pct)d %(val)f %(time)d\n'
         val_template = '%(prefix)s.%(timer_name)s.%(stat_type)s %(val)f %(time)d\n'
         stat_types = ('sum', 'mean', 'upper', 'count')
         for timer_name, timer_vals in stats.timers.items():
